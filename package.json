@@ -28,7 +28,12 @@
     "test:flow-coverage": "flow-coverage-report -i 'src/**/*.js' -x '**/__tests__/**' -t html",
     "test:flow-todo": "eslint --no-eslintrc -c tools/flow-todo.eslintrc.yaml src/",
     "update-libdefs": "yarn install && rm -rf flow-typed/npm/ && flow-typed update",
-    "reinstall": "rm -rf node_modules && yarn cache clean && yarn install"
+    "reinstall": "rm -rf node_modules && yarn cache clean && yarn install",
+    "esprint": "./devScripts/esprint.sh",
+    "eslint": "node_modules/eslint/bin/eslint.js js/ --max-warnings 147 --cache",
+    "androidLint": "bash ./devScripts/androidLint.sh",
+    "noCircular": "madge --circular --exclude '(DynamicComposer|stateTypeDefinitions)' js/ ",
+    "testWithCoverage": "node_modules/jest/bin/jest.js --coverage",
   },
   "dependencies": {
     "@expo/react-native-action-sheet": "^1.1.0",

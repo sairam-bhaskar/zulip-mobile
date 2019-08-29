@@ -33,7 +33,7 @@
     "eslint": "node_modules/eslint/bin/eslint.js js/ --max-warnings 147 --cache",
     "androidLint": "bash ./devScripts/androidLint.sh",
     "noCircular": "madge --circular --exclude '(DynamicComposer|stateTypeDefinitions)' js/ ",
-    "testWithCoverage": "node_modules/jest/bin/jest.js --coverage",
+    "testWithCoverage": "node_modules/jest/bin/jest.js --coverage"
   },
   "dependencies": {
     "@expo/react-native-action-sheet": "^1.1.0",

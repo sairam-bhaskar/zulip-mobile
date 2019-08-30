@@ -8,5 +8,5 @@ $( cd "$( dirname "$0" )" && pwd )"
 cd $SCRIPT_DIR/../
 
 cd android
-#commented issue with example app.
+#commented issue with example app Test.
 #./gradlew lintDevDebug

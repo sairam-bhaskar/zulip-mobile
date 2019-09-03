@@ -1,0 +1,178 @@
+---
+format_version: '8'
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: react-native
+trigger_map:
+- push_branch: master
+  workflow: ci
+- pull_request_source_branch: "*"
+  workflow: ci
+workflows:
+  ci:
+    after_run:
+    - Android
+  Android:
+    steps:
+    - activate-ssh-key@4.0.3:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - git-clone@4.0.14: {}
+    - script@1.1.5:
+        title: Get YML file from repo
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            bitrise run "${BITRISE_TRIGGERED_WORKFLOW_ID}"
+    - script@1.1.5:
+        title: Testing from repo
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            echo "zin test"
+    - script@1.1.5:
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # debug log
+            set -x
+            # write your script here
+            chmod +x ./devScripts/*.sh
+            curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash
+            source ~/.nvm/nvm.sh
+            nvm install $BITRISE_NODE_VERSION
+            nvm alias default v$BITRISE_NODE_VERSION
+            #if [[ "$BITRISE_OS_NAME" == "osx" ]]; then cd ./ios && bundle install && cd ..; fi
+            #if [[ "$BITRISE_OS_NAME" != "osx" ]]; then cd ./android && bundle install && cd ..; fi
+            cd ./android && bundle install && cd ..
+            curl -o- -L https://yarnpkg.com/install.sh | bash
+            export PATH="$HOME/.yarn/bin:$PATH"
+            npm install -g react-native-cli
+            if [[ "$BITRISE_BRANCH" == "release/testFlight"* ]]; then export TEST_FLIGHT_BUILD=true; else export TEST_FLIGHT_BUILD=false; fi
+            if [[ "$BITRISE_BRANCH" == "release/googleAlpha"* ]]; then export GOOGLE_ALPHA_BUILD=true; else export GOOGLE_ALPHA_BUILD=false; fi
+            if [[ "$BITRISE_OS_NAME" == "osx" ]]; then echo "zin test file"; fi
+            if [[ "$BITRISE_OS_NAME" == "osx" ]]; then eecho "zin test2 file"; fi
+            if [[ "$GOOGLE_ALPHA_BUILD" == "true" ]]; then echo "zin test3 file"; fi
+        title: Before install Script
+    - script@1.1.5:
+        title: Install Script
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # debug log
+            set -x
+
+            # write your script here
+            if [ "$BITRISE_PULL_REQUEST" != "false" ] && [ -z ${DEPLOY+x} ]; then yarn install; fi
+            if [ "$BITRISE_PULL_REQUEST" == "false" ] && [ ! -z ${DEPLOY+x} ]; then yarn install; fi
+            if [ ! -z ${BUILD_ANDROID_CHECK+x} ] && [ ! -z ${DEPLOY+x} ]; then yarn install; fi
+
+            # or run a script from your repository, like:
+            # bash ./path/to/script.sh
+            # not just bash, e.g.:
+            # ruby ./path/to/script.rb
+    - script@1.1.5:
+        title: Before Script
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # debug log
+            set -x
+
+            # write your script here
+            ./devScripts/before_install_pull_request.sh
+
+            # or run a script from your repository, like:
+            # bash ./path/to/script.sh
+            # not just bash, e.g.:
+            # ruby ./path/to/script.rb
+    - install-missing-android-tools@2.3.7:
+        inputs:
+        - gradlew_path: "./android/gradlew"
+    - npm@1.0.2:
+        inputs:
+        - command: test
+    - android-build@0.10.0:
+        inputs:
+        - project_location: "$PROJECT_LOCATION"
+    - certificate-and-profile-installer@1.10.1: {}
+    - deploy-to-bitrise-io@1.6.0: {}
+    envs:
+    - TEST_ESLINT_CHECKS: '1'
+      opts:
+        is_expand: false
+    - TEST_UNIT_TEST_COVERAGE: '1'
+      opts:
+        is_expand: false
+    - TEST_FLOW_CHECKS: '1'
+      opts:
+        is_expand: false
+    - TEST_NO_CIRCULAR_CHECKS: '1'
+      opts:
+        is_expand: false
+    - BUILD_ANDROID_CHECK: '1'
+      opts:
+        is_expand: false
+    - DEPLOY: '1'
+      opts:
+        is_expand: false
+    - TEST_IOS_UNIT_TESTS_CHECKS: '1'
+      opts:
+        is_expand: false
+    - TEST_JSON_LINT: '1'
+      opts:
+        is_expand: false
+app:
+  envs:
+  - opts:
+      is_expand: false
+    PROJECT_LOCATION: android
+  - opts:
+      is_expand: false
+    MODULE: app
+  - opts:
+      is_expand: false
+    VARIANT: release
+  - BITRISE_PROJECT_PATH: ios/ZulipMobile.xcworkspace
+    opts:
+      is_expand: false
+  - opts:
+      is_expand: false
+    BITRISE_SCHEME: ZulipMobile
+  - opts:
+      is_expand: false
+    BITRISE_EXPORT_METHOD: ad-hoc
+  - opts:
+      is_expand: false
+    TZ: America/Chicago
+  - JAVASCRIPT_FILES_CHANGED_COUNT: "$(git diff --name-only $BITRISE_COMMIT_RANGE
+      | grep \\\\.js -c)"
+  - IOS_FILES_CHANGED_COUNT: "$(git diff --name-only $BITRISE_COMMIT_RANGE | grep
+      ios/ -c)"
+  - ANDROID_FILES_CHANGED_COUNT: "$(git diff --name-only $BITRISE_COMMIT_RANGE | grep
+      android/ -c)"
+  - JSON_FILES_CHANGED: "$(git diff --name-only $BITRISE_COMMIT_RANGE | grep \\\\.json)"
+  - BITRISE_NODE_VERSION: 10.15.3
+    opts:
+      is_expand: false
+  - opts:
+      is_expand: false
+    IOS_SCHEME: ZulipMobile
+  - opts:
+      is_expand: false
+    TEST_IOS_SDK: iphonesimulator12.0
+  - opts:
+      is_expand: false
+    TEST_IOS_PLATFORM: iOS Simulator
+  - opts:
+      is_expand: false
+    TEST_IOS_OS: 12
+  - opts:
+      is_expand: false
+    TEST_IOS_DEVICE_NAME: iPhone SE
